@@ -61,9 +61,9 @@ static void plt__py_plot(PyObject *x, PyObject *y, PyObject *fmt,
 static PyObject *plt__function(const char *name);
 static PyObject *plt__module(void);
 static PyObject *plt__pydict_from(va_list list);
-static PyObject *plt__pylist_from(const double *items, long int len);
+static PyObject *plt__pylist_from(const double *items, Py_ssize_t len);
 
-#define PLT_ASSERT_NON_NULL(ptr, msg) plt__assert_non_null((ptr), (msg), #ptr)
+#define PLT__ASSERT_NON_NULL(ptr, msg) plt__assert_non_null((ptr), (msg), #ptr)
 
 // API functions definition
 
@@ -76,7 +76,7 @@ static void plt__grid(void)
 static void plt__plot(const double *x, const double *y, long int len,
                       const char *fmt, ...)
 {
-    PLT_ASSERT_NON_NULL(y, "plt.plot");
+    PLT__ASSERT_NON_NULL(y, "plt.plot");
     PyObject *x_list = NULL;
     PyObject *y_list = NULL;
     PyObject *fmt_uni = NULL;
@@ -113,19 +113,19 @@ static void plt__show(void)
 
 static void plt__title(const char *title)
 {
-    PLT_ASSERT_NON_NULL(title, "plt.title");
+    PLT__ASSERT_NON_NULL(title, "plt.title");
     plt__function_call_1_str("title", title);
 }
 
 static void plt__xlabel(const char *xlabel)
 {
-    PLT_ASSERT_NON_NULL(xlabel, "plt.xlabel");
+    PLT__ASSERT_NON_NULL(xlabel, "plt.xlabel");
     plt__function_call_1_str("xlabel", xlabel);
 }
 
 static void plt__ylabel(const char *ylabel)
 {
-    PLT_ASSERT_NON_NULL(ylabel, "plt.ylabel");
+    PLT__ASSERT_NON_NULL(ylabel, "plt.ylabel");
     plt__function_call_1_str("ylabel", ylabel);
 }
 
@@ -257,6 +257,8 @@ static PyObject *plt__module(void)
 
 static PyObject *plt__pydict_from(va_list list)
 {
+#define PLT__VA_ARGS_PAIRS_LIMIT 64
+
     PyObject *dict = NULL;
     PyObject *key_uni = NULL;
     PyObject *val_uni = NULL;
@@ -266,7 +268,7 @@ static PyObject *plt__pydict_from(va_list list)
     dict = PyDict_New();
     plt__pyobj_check(dict);
 
-    for (Py_ssize_t i = 0; i < 64; i++)
+    for (Py_ssize_t i = 0; i < PLT__VA_ARGS_PAIRS_LIMIT; i++)
     {
         key = va_arg(list, const char *);
         val = va_arg(list, const char *);
@@ -285,16 +287,16 @@ static PyObject *plt__pydict_from(va_list list)
     }
 
     return dict;
+#undef PLT__VA_ARGS_PAIRS_LIMIT
 }
 
-static PyObject *plt__pylist_from(const double *items, long int len)
+static PyObject *plt__pylist_from(const double *items, Py_ssize_t len)
 {
     PyObject *list = PyList_New(len);
     plt__pyobj_check(list);
-    for (long int i = 0; i < len; i++)
+    for (Py_ssize_t i = 0; i < len; i++)
     {
-        const int res = PyList_SetItem(list, i, PyFloat_FromDouble(items[i]));
-        if (res != 0)
+        if (PyList_SetItem(list, i, PyFloat_FromDouble(items[i])) != 0)
         {
             plt__pyerr_print_and_exit();
         }
@@ -302,6 +304,6 @@ static PyObject *plt__pylist_from(const double *items, long int len)
     return list;
 }
 
-#undef PLT_ASSERT_NON_NULL
+#undef PLT__ASSERT_NON_NULL
 
 #endif // PLT_IMPLEMENTATION
