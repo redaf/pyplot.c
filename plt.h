@@ -15,6 +15,7 @@ typedef struct
     void (*grid)(void);
     void (*plot)(const double *x, const double *y, int len, const char *fmt,
                  ...);
+    void (*scatter)(const double *x, const double *y, int len);
     void (*show)(void);
     void (*subplot)(int nrows, int ncols, int index);
     void (*title)(const char *title);
@@ -42,6 +43,7 @@ PLT_CDEC plt plt_import(void);
 static void plt__grid(void);
 static void plt__plot(const double *x, const double *y, int len,
                       const char *fmt, ...);
+static void plt__scatter(const double *x, const double *y, int len);
 static void plt__show(void);
 static void plt__subplot(int nrows, int ncols, int index);
 static void plt__title(const char *title);
@@ -68,6 +70,21 @@ static PyObject *plt__pylist_from(const double *items, Py_ssize_t len);
 #define PLT__ASSERT_NON_NULL(ptr, msg) plt__assert_non_null((ptr), (msg), #ptr)
 
 // API functions definition
+
+PLT_CDEF plt plt_import(void)
+{
+    plt__initialize();
+    return (plt){
+        .grid = plt__grid,
+        .plot = plt__plot,
+        .scatter = plt__scatter,
+        .show = plt__show,
+        .subplot = plt__subplot,
+        .title = plt__title,
+        .xlabel = plt__xlabel,
+        .ylabel = plt__ylabel,
+    };
+}
 
 static void plt__grid(void)
 {
@@ -107,6 +124,17 @@ static void plt__plot(const double *x, const double *y, int len,
     plt__py_plot(x_list, y_list, fmt_uni, kwargs_dict);
 }
 
+static void plt__scatter(const double *x, const double *y, int len)
+{
+    PLT__ASSERT_NON_NULL(x, "plt.scatter");
+    PLT__ASSERT_NON_NULL(y, "plt.scatter");
+    PyObject *x_list = plt__pylist_from(x, (Py_ssize_t)len);
+    PyObject *y_list = plt__pylist_from(y, (Py_ssize_t)len);
+    PyObject *result =
+        PyObject_CallFunction(plt__function("scatter"), "(OO)", x_list, y_list);
+    plt__pyobj_check(result);
+}
+
 static void plt__show(void)
 {
     PyObject *result = PyObject_CallNoArgs(plt__function("show"));
@@ -136,20 +164,6 @@ static void plt__ylabel(const char *ylabel)
 {
     PLT__ASSERT_NON_NULL(ylabel, "plt.ylabel");
     plt__function_call_1_str("ylabel", ylabel);
-}
-
-PLT_CDEF plt plt_import(void)
-{
-    plt__initialize();
-    return (plt){
-        .grid = plt__grid,
-        .plot = plt__plot,
-        .show = plt__show,
-        .subplot = plt__subplot,
-        .title = plt__title,
-        .xlabel = plt__xlabel,
-        .ylabel = plt__ylabel,
-    };
 }
 
 // Private functions definition
