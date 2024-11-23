@@ -8,11 +8,13 @@
 #define PLT_CDEC extern
 #endif
 
+// API
+
 typedef struct
 {
     void (*grid)(void);
     void (*plot)(const double *x, const double *y, long int len,
-                 const char *fmt);
+                 const char *fmt, ...);
     void (*show)(void);
     void (*title)(const char *title);
     void (*xlabel)(const char *xlabel);
@@ -34,31 +36,138 @@ PLT_CDEC plt plt_import(void);
 #define PLT_CDEF
 #endif
 
-#define PLT_ASSERT_NON_NULL(ptr, msg)                                          \
-    if ((ptr) == NULL)                                                         \
-    {                                                                          \
-        (void)fprintf(stderr, "ERROR: ");                                      \
-        if ((msg) != NULL)                                                     \
-        {                                                                      \
-            (void)fprintf(stderr, "%s: ", msg);                                \
-        }                                                                      \
-        (void)fprintf(stderr, "'%s' is null\n", #ptr);                         \
-        (void)fflush(stderr);                                                  \
-        exit(1);                                                               \
+// API functions declaration
+
+static void plt__grid(void);
+static void plt__plot(const double *x, const double *y, long int len,
+                      const char *fmt, ...);
+static void plt__show(void);
+static void plt__title(const char *title);
+static void plt__xlabel(const char *xlabel);
+static void plt__ylabel(const char *ylabel);
+
+// Private functions declaration
+
+static void plt__assert_non_null(const void *ptr, const char *msg,
+                                 const char *ptr_name);
+static void plt__function_call_1_str(const char *function_name,
+                                     const char *str);
+static void plt__initialize(void);
+static void plt__pyerr_print_and_exit(void);
+static void plt__pyobj_check(PyObject *obj);
+static void plt__py_plot(PyObject *x, PyObject *y, PyObject *fmt,
+                         PyObject *kwargs);
+
+static PyObject *plt__function(const char *name);
+static PyObject *plt__module(void);
+static PyObject *plt__pydict_from(va_list list);
+static PyObject *plt__pylist_from(const double *items, long int len);
+
+#define PLT_ASSERT_NON_NULL(ptr, msg) plt__assert_non_null((ptr), (msg), #ptr)
+
+// API functions definition
+
+static void plt__grid(void)
+{
+    PyObject *result = PyObject_CallNoArgs(plt__function("grid"));
+    plt__pyobj_check(result);
+}
+
+static void plt__plot(const double *x, const double *y, long int len,
+                      const char *fmt, ...)
+{
+    PLT_ASSERT_NON_NULL(y, "plt.plot");
+    PyObject *x_list = NULL;
+    PyObject *y_list = NULL;
+    PyObject *fmt_uni = NULL;
+    PyObject *kwargs_dict = NULL;
+
+    if (x != NULL)
+    {
+        x_list = plt__pylist_from(x, len);
+        plt__pyobj_check(x_list);
     }
 
-static void plt__pyerr_print_and_exit(void)
+    y_list = plt__pylist_from(y, len);
+    plt__pyobj_check(y_list);
+
+    if (fmt != NULL)
+    {
+        fmt_uni = PyUnicode_FromString(fmt);
+        plt__pyobj_check(fmt_uni);
+    }
+
+    va_list kw_list;
+    va_start(kw_list, fmt);
+    kwargs_dict = plt__pydict_from(kw_list);
+    va_end(kw_list);
+
+    plt__py_plot(x_list, y_list, fmt_uni, kwargs_dict);
+}
+
+static void plt__show(void)
 {
-    PyErr_Print();
+    PyObject *result = PyObject_CallNoArgs(plt__function("show"));
+    plt__pyobj_check(result);
+}
+
+static void plt__title(const char *title)
+{
+    PLT_ASSERT_NON_NULL(title, "plt.title");
+    plt__function_call_1_str("title", title);
+}
+
+static void plt__xlabel(const char *xlabel)
+{
+    PLT_ASSERT_NON_NULL(xlabel, "plt.xlabel");
+    plt__function_call_1_str("xlabel", xlabel);
+}
+
+static void plt__ylabel(const char *ylabel)
+{
+    PLT_ASSERT_NON_NULL(ylabel, "plt.ylabel");
+    plt__function_call_1_str("ylabel", ylabel);
+}
+
+PLT_CDEF plt plt_import(void)
+{
+    plt__initialize();
+    return (plt){
+        .grid = plt__grid,
+        .plot = plt__plot,
+        .show = plt__show,
+        .title = plt__title,
+        .xlabel = plt__xlabel,
+        .ylabel = plt__ylabel,
+    };
+}
+
+// Private functions definition
+
+static void plt__assert_non_null(const void *ptr, const char *msg,
+                                 const char *ptr_name)
+{
+    if (ptr != NULL)
+    {
+        return;
+    }
+
+    (void)fprintf(stderr, "ERROR: ");
+    if ((msg) != NULL)
+    {
+        (void)fprintf(stderr, "%s: ", msg);
+    }
+    (void)fprintf(stderr, "'%s' is null\n", ptr_name);
+    (void)fflush(stderr);
     exit(1);
 }
 
-static void plt__pyobj_check(PyObject *obj)
+static void plt__function_call_1_str(const char *function_name, const char *str)
 {
-    if (obj == NULL)
-    {
-        plt__pyerr_print_and_exit();
-    }
+    PyObject *arg = PyUnicode_FromString(str);
+    plt__pyobj_check(arg);
+    PyObject *result = PyObject_CallOneArg(plt__function(function_name), arg);
+    plt__pyobj_check(result);
 }
 
 static void plt__initialize(void)
@@ -74,16 +183,52 @@ static void plt__initialize(void)
     }
 }
 
-static PyObject *plt__module(void)
+static void plt__pyerr_print_and_exit(void)
 {
-    static PyObject *module = NULL;
-    if (module != NULL)
+    PyErr_Print();
+    exit(1);
+}
+
+static void plt__pyobj_check(PyObject *obj)
+{
+    if (obj == NULL)
     {
-        return module;
+        plt__pyerr_print_and_exit();
     }
-    module = PyImport_ImportModule("matplotlib.pyplot");
-    plt__pyobj_check(module);
-    return module;
+}
+
+static void plt__py_plot(PyObject *x, PyObject *y, PyObject *fmt,
+                         PyObject *kwargs)
+{
+    Py_ssize_t args_count = 1; // y cannot be null
+    Py_ssize_t args_index = 0;
+    PyObject *args = NULL;
+    PyObject *result = NULL;
+
+    args_count += x != NULL;
+    args_count += fmt != NULL;
+    args = PyTuple_New(args_count);
+    plt__pyobj_check(args);
+
+    // Add x
+    if (x != NULL)
+    {
+        PyTuple_SET_ITEM(args, args_index, x);
+        args_index += 1;
+    }
+    // Add y
+    PyTuple_SET_ITEM(args, args_index, y);
+    args_index += 1;
+    // Add fmt
+    if (fmt != NULL)
+    {
+        PyTuple_SET_ITEM(args, args_index, fmt);
+        args_index += 1;
+    }
+    assert(args_index == args_count);
+
+    result = PyObject_Call(plt__function("plot"), args, kwargs);
+    plt__pyobj_check(result);
 }
 
 static PyObject *plt__function(const char *name)
@@ -98,24 +243,48 @@ static PyObject *plt__function(const char *name)
     return function;
 }
 
-static void plt__call_function_1_str(const char *function_name, const char *str)
+static PyObject *plt__module(void)
 {
-    PyObject *arg = PyUnicode_FromString(str);
-    plt__pyobj_check(arg);
-    PyObject *result = PyObject_CallOneArg(plt__function(function_name), arg);
-    plt__pyobj_check(result);
+    static PyObject *module = NULL;
+    if (module != NULL)
+    {
+        return module;
+    }
+    module = PyImport_ImportModule("matplotlib.pyplot");
+    plt__pyobj_check(module);
+    return module;
 }
 
-static void plt__grid(void)
+static PyObject *plt__pydict_from(va_list list)
 {
-    PyObject *result = PyObject_CallNoArgs(plt__function("grid"));
-    plt__pyobj_check(result);
-}
+    PyObject *dict = NULL;
+    PyObject *key_uni = NULL;
+    PyObject *val_uni = NULL;
+    const char *key = NULL;
+    const char *val = NULL;
 
-static void plt__show(void)
-{
-    PyObject *result = PyObject_CallNoArgs(plt__function("show"));
-    plt__pyobj_check(result);
+    dict = PyDict_New();
+    plt__pyobj_check(dict);
+
+    for (Py_ssize_t i = 0; i < 64; i++)
+    {
+        key = va_arg(list, const char *);
+        val = va_arg(list, const char *);
+        if ((key == NULL) || (val == NULL))
+        {
+            break;
+        }
+        key_uni = PyUnicode_FromString(key);
+        val_uni = PyUnicode_FromString(val);
+        plt__pyobj_check(key_uni);
+        plt__pyobj_check(val_uni);
+        if (PyDict_SetItem(dict, key_uni, val_uni) != 0)
+        {
+            plt__pyerr_print_and_exit();
+        }
+    }
+
+    return dict;
 }
 
 static PyObject *plt__pylist_from(const double *items, long int len)
@@ -131,80 +300,6 @@ static PyObject *plt__pylist_from(const double *items, long int len)
         }
     }
     return list;
-}
-
-static void plt__plot(const double *x, const double *y, long int len,
-                      const char *fmt)
-{
-    PLT_ASSERT_NON_NULL(y, "plt.plot");
-    Py_ssize_t count = 1;
-    PyObject *x_list = NULL;
-    PyObject *y_list = NULL;
-    PyObject *fmt_obj = NULL;
-    if (x != NULL)
-    {
-        x_list = plt__pylist_from(x, len);
-        plt__pyobj_check(x_list);
-        count += 1;
-    }
-    y_list = plt__pylist_from(y, len);
-    plt__pyobj_check(y_list);
-    if (fmt != NULL)
-    {
-        fmt_obj = PyUnicode_FromString(fmt);
-        plt__pyobj_check(fmt_obj);
-        count += 1;
-    }
-
-    PyObject *args = PyTuple_New(count);
-    plt__pyobj_check(args);
-    count = 0;
-    if (x_list != NULL)
-    {
-        PyTuple_SET_ITEM(args, count, x_list);
-        count += 1;
-    }
-    PyTuple_SET_ITEM(args, count, y_list);
-    count += 1;
-    if (fmt_obj != NULL)
-    {
-        PyTuple_SET_ITEM(args, count, fmt_obj);
-        count += 1;
-    }
-
-    PyObject *result = PyObject_CallObject(plt__function("plot"), args);
-    plt__pyobj_check(result);
-}
-
-static void plt__title(const char *title)
-{
-    PLT_ASSERT_NON_NULL(title, "plt.title");
-    plt__call_function_1_str("title", title);
-}
-
-static void plt__xlabel(const char *xlabel)
-{
-    PLT_ASSERT_NON_NULL(xlabel, "plt.xlabel");
-    plt__call_function_1_str("xlabel", xlabel);
-}
-
-static void plt__ylabel(const char *ylabel)
-{
-    PLT_ASSERT_NON_NULL(ylabel, "plt.ylabel");
-    plt__call_function_1_str("ylabel", ylabel);
-}
-
-PLT_CDEF plt plt_import(void)
-{
-    plt__initialize();
-    return (plt){
-        .grid = plt__grid,
-        .plot = plt__plot,
-        .show = plt__show,
-        .title = plt__title,
-        .xlabel = plt__xlabel,
-        .ylabel = plt__ylabel,
-    };
 }
 
 #undef PLT_ASSERT_NON_NULL
