@@ -1,0 +1,6 @@
+*
+!.clang-format
+!.gitignore
+!LICENSE
+!plt.h
+!README.md
