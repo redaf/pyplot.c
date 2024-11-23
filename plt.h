@@ -16,6 +16,7 @@ typedef struct
     void (*plot)(const double *x, const double *y, int len, const char *fmt,
                  ...);
     void (*show)(void);
+    void (*subplot)(int nrows, int ncols, int index);
     void (*title)(const char *title);
     void (*xlabel)(const char *xlabel);
     void (*ylabel)(const char *ylabel);
@@ -42,6 +43,7 @@ static void plt__grid(void);
 static void plt__plot(const double *x, const double *y, int len,
                       const char *fmt, ...);
 static void plt__show(void);
+static void plt__subplot(int nrows, int ncols, int index);
 static void plt__title(const char *title);
 static void plt__xlabel(const char *xlabel);
 static void plt__ylabel(const char *ylabel);
@@ -111,6 +113,13 @@ static void plt__show(void)
     plt__pyobj_check(result);
 }
 
+static void plt__subplot(int nrows, int ncols, int index)
+{
+    PyObject *result = PyObject_CallFunction(plt__function("subplot"), "iii",
+                                             nrows, ncols, index);
+    plt__pyobj_check(result);
+}
+
 static void plt__title(const char *title)
 {
     PLT__ASSERT_NON_NULL(title, "plt.title");
@@ -136,6 +145,7 @@ PLT_CDEF plt plt_import(void)
         .grid = plt__grid,
         .plot = plt__plot,
         .show = plt__show,
+        .subplot = plt__subplot,
         .title = plt__title,
         .xlabel = plt__xlabel,
         .ylabel = plt__ylabel,
