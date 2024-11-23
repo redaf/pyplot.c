@@ -249,7 +249,6 @@ static void plt__py_plot(PyObject *x, PyObject *y, PyObject *fmt,
         PyTuple_SET_ITEM(args, args_index, fmt);
         args_index += 1;
     }
-    assert(args_index == args_count);
 
     result = PyObject_Call(plt__function("plot"), args, kwargs);
     plt__pyobj_check(result);
