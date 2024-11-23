@@ -13,8 +13,8 @@
 typedef struct
 {
     void (*grid)(void);
-    void (*plot)(const double *x, const double *y, long int len,
-                 const char *fmt, ...);
+    void (*plot)(const double *x, const double *y, int len, const char *fmt,
+                 ...);
     void (*show)(void);
     void (*title)(const char *title);
     void (*xlabel)(const char *xlabel);
@@ -39,7 +39,7 @@ PLT_CDEC plt plt_import(void);
 // API functions declaration
 
 static void plt__grid(void);
-static void plt__plot(const double *x, const double *y, long int len,
+static void plt__plot(const double *x, const double *y, int len,
                       const char *fmt, ...);
 static void plt__show(void);
 static void plt__title(const char *title);
@@ -73,7 +73,7 @@ static void plt__grid(void)
     plt__pyobj_check(result);
 }
 
-static void plt__plot(const double *x, const double *y, long int len,
+static void plt__plot(const double *x, const double *y, int len,
                       const char *fmt, ...)
 {
     PLT__ASSERT_NON_NULL(y, "plt.plot");
@@ -84,11 +84,11 @@ static void plt__plot(const double *x, const double *y, long int len,
 
     if (x != NULL)
     {
-        x_list = plt__pylist_from(x, len);
+        x_list = plt__pylist_from(x, (Py_ssize_t)len);
         plt__pyobj_check(x_list);
     }
 
-    y_list = plt__pylist_from(y, len);
+    y_list = plt__pylist_from(y, (Py_ssize_t)len);
     plt__pyobj_check(y_list);
 
     if (fmt != NULL)
