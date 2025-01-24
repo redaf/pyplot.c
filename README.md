@@ -1,8 +1,34 @@
 # pyplot.c
 
-A c wrapper for [matplotlib.pyplot](https://matplotlib.org/stable/api/pyplot_summary.html).
+A limited single file wrapper for [matplotlib.pyplot](https://matplotlib.org/stable/api/pyplot_summary.html).
 
 ### Quick start
+
+Simplest example
+
+```c
+#define PLT_IMPLEMENTATION
+#include "plt.h"
+
+int main()
+{
+    plt plt = plt_import();
+
+    double y[] = {3, 8, 1, 10, 5, 7};
+
+    plt.plot(NULL, y, 6, NULL, NULL);
+    plt.show();
+}
+```
+
+Compile & run:
+
+```console
+$ ls
+example.c plt.h
+$ cc -I <path/to/Python.h> example.c -o example -L <path/to/libpython3.12.so> -lpython3.12
+$ ./example
+```
 
 <table>
 <tr>
@@ -20,13 +46,12 @@ A c wrapper for [matplotlib.pyplot](https://matplotlib.org/stable/api/pyplot_sum
 
 int main()
 {
-plt plt = plt_import();
-double xpoints[] = {1, 8};
-double ypoints[] = {3, 10};
+    plt plt = plt_import();
+    double xpoints[] = {1, 8};
+    double ypoints[] = {3, 10};
 
     plt.plot(xpoints, ypoints, 2, NULL, NULL);
     plt.show();
-
 }
 ```
 
