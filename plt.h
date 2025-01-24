@@ -2,6 +2,10 @@
 #ifndef INCLUDE_PLT_H
 #define INCLUDE_PLT_H
 
+#ifndef Py_PYTHON_H
+#include <Python.h>
+#endif // Py_PYTHON_H
+
 #ifdef PLT_STATIC
 #define PLT_CDEC static
 #else
@@ -272,7 +276,7 @@ static PyObject *plt__module(void)
 
 static PyObject *plt__pydict_from(va_list list)
 {
-#define PLT__VA_ARGS_PAIRS_LIMIT 64
+    const Py_ssize_t VA_ARGS_PAIRS_LIMIT = 64;
 
     PyObject *dict = NULL;
     PyObject *key_uni = NULL;
@@ -283,7 +287,7 @@ static PyObject *plt__pydict_from(va_list list)
     dict = PyDict_New();
     plt__pyobj_check(dict);
 
-    for (Py_ssize_t i = 0; i < PLT__VA_ARGS_PAIRS_LIMIT; i++)
+    for (Py_ssize_t i = 0; i < VA_ARGS_PAIRS_LIMIT; i++)
     {
         key = va_arg(list, const char *);
         val = va_arg(list, const char *);
@@ -302,7 +306,6 @@ static PyObject *plt__pydict_from(va_list list)
     }
 
     return dict;
-#undef PLT__VA_ARGS_PAIRS_LIMIT
 }
 
 static PyObject *plt__pylist_from(const double *items, Py_ssize_t len)
