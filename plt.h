@@ -25,6 +25,8 @@ typedef struct
 
 PLT_CDEC plt plt_import(void);
 
+#undef PLT_CDEC
+
 #endif // INCLUDE_PLT_H
 
 #ifdef PLT_IMPLEMENTATION
@@ -328,5 +330,6 @@ static PyObject *plt__pylist_from(const double *items, Py_ssize_t len)
 }
 
 #undef PLT__ASSERT_NON_NULL
+#undef PLT_CDEF
 
 #endif // PLT_IMPLEMENTATION
