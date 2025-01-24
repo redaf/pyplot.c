@@ -13,8 +13,7 @@
 typedef struct
 {
     void (*grid)(void);
-    void (*plot)(const double *x, const double *y, int len, const char *fmt,
-                 ...);
+    void (*plot)(const double *x, const double *y, int len, const char *fmt, ...);
     void (*scatter)(const double *x, const double *y, int len);
     void (*show)(void);
     void (*subplot)(int nrows, int ncols, int index);
@@ -43,8 +42,7 @@ PLT_CDEC plt plt_import(void);
 // API functions declaration
 
 static void plt__grid(void);
-static void plt__plot(const double *x, const double *y, int len,
-                      const char *fmt, ...);
+static void plt__plot(const double *x, const double *y, int len, const char *fmt, ...);
 static void plt__scatter(const double *x, const double *y, int len);
 static void plt__show(void);
 static void plt__subplot(int nrows, int ncols, int index);
@@ -54,15 +52,12 @@ static void plt__ylabel(const char *ylabel);
 
 // Private functions declaration
 
-static void plt__assert_non_null(const void *ptr, const char *msg,
-                                 const char *ptr_name);
-static void plt__function_call_1_str(const char *function_name,
-                                     const char *str);
+static void plt__assert_non_null(const void *ptr, const char *msg, const char *ptr_name);
+static void plt__function_call_1_str(const char *function_name, const char *str);
 static void plt__initialize(void);
 static void plt__pyerr_print_and_exit(void);
 static void plt__pyobj_check(PyObject *obj);
-static void plt__py_plot(PyObject *x, PyObject *y, PyObject *fmt,
-                         PyObject *kwargs);
+static void plt__py_plot(PyObject *x, PyObject *y, PyObject *fmt, PyObject *kwargs);
 
 static PyObject *plt__function(const char *name);
 static PyObject *plt__module(void);
@@ -94,8 +89,7 @@ static void plt__grid(void)
     plt__pyobj_check(result);
 }
 
-static void plt__plot(const double *x, const double *y, int len,
-                      const char *fmt, ...)
+static void plt__plot(const double *x, const double *y, int len, const char *fmt, ...)
 {
     PLT__ASSERT_NON_NULL(y, "plt.plot");
     PyObject *x_list = NULL;
@@ -132,8 +126,7 @@ static void plt__scatter(const double *x, const double *y, int len)
     PLT__ASSERT_NON_NULL(y, "plt.scatter");
     PyObject *x_list = plt__pylist_from(x, (Py_ssize_t)len);
     PyObject *y_list = plt__pylist_from(y, (Py_ssize_t)len);
-    PyObject *result =
-        PyObject_CallFunction(plt__function("scatter"), "(OO)", x_list, y_list);
+    PyObject *result = PyObject_CallFunction(plt__function("scatter"), "(OO)", x_list, y_list);
     plt__pyobj_check(result);
 }
 
@@ -145,8 +138,7 @@ static void plt__show(void)
 
 static void plt__subplot(int nrows, int ncols, int index)
 {
-    PyObject *result = PyObject_CallFunction(plt__function("subplot"), "iii",
-                                             nrows, ncols, index);
+    PyObject *result = PyObject_CallFunction(plt__function("subplot"), "iii", nrows, ncols, index);
     plt__pyobj_check(result);
 }
 
@@ -170,8 +162,7 @@ static void plt__ylabel(const char *ylabel)
 
 // Private functions definition
 
-static void plt__assert_non_null(const void *ptr, const char *msg,
-                                 const char *ptr_name)
+static void plt__assert_non_null(const void *ptr, const char *msg, const char *ptr_name)
 {
     if (ptr != NULL)
     {
@@ -223,8 +214,7 @@ static void plt__pyobj_check(PyObject *obj)
     }
 }
 
-static void plt__py_plot(PyObject *x, PyObject *y, PyObject *fmt,
-                         PyObject *kwargs)
+static void plt__py_plot(PyObject *x, PyObject *y, PyObject *fmt, PyObject *kwargs)
 {
     Py_ssize_t args_count = 1; // y cannot be null
     Py_ssize_t args_index = 0;
